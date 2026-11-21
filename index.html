@@ -1,0 +1,1113 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Calculadora Gráfica - PrintAju</title>
+    
+    <!-- Meta tags PWA para Android, Chrome e iOS (Safari) -->
+    <meta name="theme-color" content="#0f172a">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="PrintAju Calc">
+    <link id="pwa-manifest" rel="manifest" href="">
+    <link id="apple-touch-icon" rel="apple-touch-icon" href="">
+
+    <!-- Carregamento do Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Carregamento da fonte Inter -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <!-- Carregamento dos ícones Lucide -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                    },
+                    colors: {
+                        navy: {
+                            800: '#162844',
+                            900: '#0F1C30',
+                            950: '#091220',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        /* Ajustes finos para barra de rolagem e transições */
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #f1f5f9;
+            border-radius: 8px;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 8px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8;
+        }
+        input[type=number]::-webkit-inner-spin-button, 
+        input[type=number]::-webkit-outer-spin-button { 
+            -webkit-appearance: none; 
+            margin: 0; 
+        }
+    </style>
+</head>
+<body class="bg-slate-100 text-slate-800 font-sans antialiased min-h-screen flex flex-col">
+
+    <!-- Notificação Toast Flutuante (Substitui alert()) -->
+    <div id="toast" class="fixed bottom-5 right-5 z-50 transform translate-y-20 opacity-0 transition-all duration-300 pointer-events-none flex items-center gap-3 bg-navy-900 text-white px-5 py-3.5 rounded-xl shadow-2xl border border-slate-700">
+        <i data-lucide="check-circle-2" class="w-5 h-5 text-emerald-400 shrink-0"></i>
+        <span id="toast-message" class="text-sm font-medium">Ação concluída com sucesso!</span>
+    </div>
+
+    <!-- Cabeçalho Corporativo -->
+    <header class="bg-navy-900 text-white shadow-lg sticky top-0 z-30 border-b border-navy-800">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+            <div class="flex items-center gap-3">
+                <div class="bg-amber-500/20 border border-amber-400/30 p-2 rounded-xl flex items-center justify-center">
+                    <i data-lucide="printer" class="w-6 h-6 text-amber-400"></i>
+                </div>
+                <div>
+                    <h1 class="text-lg sm:text-xl font-bold tracking-tight leading-none flex items-center gap-2">
+                        PrintAju <span class="text-xs font-semibold uppercase tracking-wider bg-amber-500/20 text-amber-300 px-2 py-0.5 rounded-md border border-amber-400/20">Gráfica Rápida</span>
+                    </h1>
+                    <p class="text-xs text-slate-400 mt-0.5 hidden sm:block">Calculadora Inteligente de Precificação & Orçamentos</p>
+                </div>
+            </div>
+            <div class="flex items-center gap-2">
+                <!-- Botão Instalar App (PWA) -->
+                <button id="installAppBtn" onclick="triggerPWAInstall()" class="flex items-center gap-1.5 text-xs sm:text-sm font-bold text-navy-950 bg-amber-400 hover:bg-amber-300 px-3 py-2 rounded-xl transition-all shadow-md cursor-pointer">
+                    <i data-lucide="download" class="w-4 h-4"></i>
+                    <span>Instalar App</span>
+                </button>
+                <button onclick="resetForm()" class="flex items-center gap-1.5 text-xs sm:text-sm font-medium text-slate-300 hover:text-white bg-navy-800 hover:bg-slate-700 px-3 py-2 rounded-xl transition-colors border border-slate-700 cursor-pointer" title="Limpar campos">
+                    <i data-lucide="rotate-ccw" class="w-4 h-4"></i>
+                    <span class="hidden md:inline">Limpar</span>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Modal de Instruções de Instalação (iOS / Navegadores sem prompt automático) -->
+    <div id="iosInstallModal" class="fixed inset-0 z-50 hidden bg-slate-950/75 backdrop-blur-sm flex items-end sm:items-center justify-center p-4">
+        <div class="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl border border-slate-200 animate-fade-in">
+            <div class="flex items-center justify-between mb-4">
+                <div class="flex items-center gap-2.5">
+                    <div class="w-10 h-10 rounded-xl bg-navy-900 flex items-center justify-center text-amber-400">
+                        <i data-lucide="smartphone" class="w-5 h-5"></i>
+                    </div>
+                    <div>
+                        <h3 class="text-base font-bold text-navy-900">Instalar no Celular</h3>
+                        <p class="text-xs text-slate-500">Acesso rápido e offline na tela inicial</p>
+                    </div>
+                </div>
+                <button onclick="closeInstallModal()" class="p-1.5 text-slate-400 hover:text-slate-600 rounded-lg">
+                    <i data-lucide="x" class="w-5 h-5"></i>
+                </button>
+            </div>
+            
+            <div class="space-y-3 text-sm text-slate-700 bg-slate-50 p-4 rounded-xl border border-slate-200/80">
+                <p class="font-semibold text-navy-900">No iPhone / iPad (Safari):</p>
+                <ol class="list-decimal list-inside space-y-2 text-xs sm:text-sm text-slate-600">
+                    <li>Toque no ícone de <strong>Compartilhar</strong> <span class="inline-flex items-center px-1.5 py-0.5 bg-slate-200 rounded text-slate-800 font-bold">⍗</span> na barra inferior do Safari.</li>
+                    <li>Role as opções para baixo e toque em <strong>"Adicionar à Tela de Início"</strong>.</li>
+                    <li>Confirme tocando em <strong>Adicionar</strong> no canto superior direito.</li>
+                </ol>
+                <div class="pt-2 border-t border-slate-200/80">
+                    <p class="font-semibold text-navy-900">No Android (Chrome):</p>
+                    <p class="text-xs sm:text-sm text-slate-600 mt-1">Toque nos <strong>três pontinhos (⋮)</strong> no canto superior e escolha <strong>"Instalar aplicativo"</strong> ou <strong>"Adicionar à tela inicial"</strong>.</p>
+                </div>
+            </div>
+
+            <button onclick="closeInstallModal()" class="mt-5 w-full py-3 bg-navy-900 hover:bg-navy-800 text-white font-bold rounded-xl transition-colors">
+                Entendi
+            </button>
+        </div>
+    </div>
+
+    <!-- Conteúdo Principal -->
+    <main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-8 items-start">
+
+            <!-- COLUNA ESQUERDA: Formulário de Entrada (7 colunas no desktop) -->
+            <div class="lg:col-span-7 space-y-6">
+
+                <!-- Cartão 1: Identificação do Produto -->
+                <section class="bg-white rounded-2xl shadow-sm border border-slate-200/80 p-5 sm:p-6">
+                    <div class="flex items-center justify-between mb-4">
+                        <h2 class="text-base font-bold text-navy-900 flex items-center gap-2">
+                            <span class="w-6 h-6 rounded-lg bg-navy-900 text-white text-xs flex items-center justify-center font-bold">1</span>
+                            Produto ou Serviço
+                        </h2>
+                        <span class="text-xs text-slate-400">Opcional</span>
+                    </div>
+
+                    <div class="space-y-3">
+                        <div class="relative">
+                            <input type="text" id="productName" placeholder="Ex: Cartão de Visita 4x4 Verniz Localizado..." 
+                                oninput="calculate()"
+                                class="w-full pl-4 pr-10 py-3 bg-slate-50 border border-slate-300 rounded-xl text-slate-900 font-medium focus:outline-none focus:ring-2 focus:ring-navy-800 focus:border-navy-800 focus:bg-white transition-all">
+                            <button type="button" onclick="document.getElementById('productName').value=''; calculate();" title="Limpar nome" class="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-1">
+                                <i data-lucide="x" class="w-4 h-4"></i>
+                            </button>
+                        </div>
+
+                        <!-- Sugestões Rápidas -->
+                        <div>
+                            <p class="text-xs font-medium text-slate-500 mb-2">Atalhos rápidos (com referência de pedido mínimo):</p>
+                            <div class="flex flex-wrap gap-1.5" id="quickProducts">
+                                <button type="button" onclick="setProduct('Cartão de Visita (1.000 un.)', 1000)" class="px-3 py-1.5 text-xs font-medium bg-slate-100 hover:bg-navy-900 hover:text-white text-slate-700 rounded-lg transition-colors">Cartões de Visita</button>
+                                <button type="button" onclick="setProduct('Panfleto 10x14cm (1.000 un.)', 1000)" class="px-3 py-1.5 text-xs font-medium bg-slate-100 hover:bg-navy-900 hover:text-white text-slate-700 rounded-lg transition-colors">Panfletos</button>
+                                <button type="button" onclick="setProduct('Adesivos / Rótulos Personalizados (100 un.)', 100)" class="px-3 py-1.5 text-xs font-medium bg-slate-100 hover:bg-navy-900 hover:text-white text-slate-700 rounded-lg transition-colors">Adesivos / Rótulos</button>
+                                <button type="button" onclick="setProduct('Banner / Lona com Acabamento', 1)" class="px-3 py-1.5 text-xs font-medium bg-slate-100 hover:bg-navy-900 hover:text-white text-slate-700 rounded-lg transition-colors">Banners / Lonas</button>
+                                <button type="button" onclick="setProduct('Caneca Personalizada', 1)" class="px-3 py-1.5 text-xs font-medium bg-slate-100 hover:bg-navy-900 hover:text-white text-slate-700 rounded-lg transition-colors">Canecas</button>
+                                <button type="button" onclick="setProduct('Botton Personalizado (10 un.)', 10)" class="px-3 py-1.5 text-xs font-medium bg-slate-100 hover:bg-navy-900 hover:text-white text-slate-700 rounded-lg transition-colors">Bottons</button>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Cartão 2: Custos e Quantidade -->
+                <section class="bg-white rounded-2xl shadow-sm border border-slate-200/80 p-5 sm:p-6">
+                    <h2 class="text-base font-bold text-navy-900 flex items-center gap-2 mb-4">
+                        <span class="w-6 h-6 rounded-lg bg-navy-900 text-white text-xs flex items-center justify-center font-bold">2</span>
+                        Custos de Produção & Quantidade
+                    </h2>
+
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <!-- Custo Base -->
+                        <div>
+                            <label for="baseCost" class="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5">
+                                Custo Base / Produção *
+                            </label>
+                            <div class="relative">
+                                <span class="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-500 font-semibold text-sm">R$</span>
+                                <input type="text" id="baseCost" inputmode="numeric" value="0,00"
+                                    oninput="handleCurrencyInput(this)"
+                                    class="w-full pl-10 pr-4 py-3 bg-slate-50 border border-slate-300 rounded-xl text-lg font-bold text-navy-900 focus:outline-none focus:ring-2 focus:ring-navy-800 focus:border-navy-800 focus:bg-white transition-all">
+                            </div>
+                            <p class="text-[11px] text-slate-500 mt-1">Valor da gráfica parceira, papel ou impressão.</p>
+                        </div>
+
+                        <!-- Quantidade -->
+                        <div>
+                            <label for="quantity" class="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5">
+                                Quantidade (Unidades)
+                            </label>
+                            <div class="flex items-center">
+                                <button type="button" onclick="adjustQuantity(-1)" class="px-3.5 py-3 bg-slate-200 hover:bg-slate-300 text-slate-700 font-bold rounded-l-xl border border-r-0 border-slate-300 transition-colors">
+                                    <i data-lucide="minus" class="w-4 h-4"></i>
+                                </button>
+                                <input type="number" id="quantity" value="1" min="1"
+                                    oninput="calculate()"
+                                    class="w-full py-2.5 text-center bg-slate-50 border-y border-slate-300 text-lg font-bold text-navy-900 focus:outline-none focus:bg-white">
+                                <button type="button" onclick="adjustQuantity(1)" class="px-3.5 py-3 bg-slate-200 hover:bg-slate-300 text-slate-700 font-bold rounded-r-xl border border-l-0 border-slate-300 transition-colors">
+                                    <i data-lucide="plus" class="w-4 h-4"></i>
+                                </button>
+                            </div>
+                            <div class="flex gap-1 mt-1.5">
+                                <button type="button" onclick="setQuantity(1)" class="text-[11px] px-2 py-0.5 bg-slate-100 hover:bg-slate-200 rounded text-slate-600 font-medium">1</button>
+                                <button type="button" onclick="setQuantity(50)" class="text-[11px] px-2 py-0.5 bg-slate-100 hover:bg-slate-200 rounded text-slate-600 font-medium">50</button>
+                                <button type="button" onclick="setQuantity(100)" class="text-[11px] px-2 py-0.5 bg-slate-100 hover:bg-slate-200 rounded text-slate-600 font-medium">100</button>
+                                <button type="button" onclick="setQuantity(500)" class="text-[11px] px-2 py-0.5 bg-slate-100 hover:bg-slate-200 rounded text-slate-600 font-medium">500</button>
+                                <button type="button" onclick="setQuantity(1000)" class="text-[11px] px-2 py-0.5 bg-slate-100 hover:bg-slate-200 rounded text-slate-600 font-medium">1.000</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Custos Extras -->
+                    <div class="mt-5 pt-4 border-t border-slate-100">
+                        <div class="grid grid-cols-1 sm:grid-cols-12 gap-4 items-end">
+                            <div class="sm:col-span-6">
+                                <label for="extraCost" class="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5">
+                                    Custos Extras (Arte / Frete / Acab.)
+                                </label>
+                                <div class="relative">
+                                    <span class="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-500 font-semibold text-sm">R$</span>
+                                    <input type="text" id="extraCost" inputmode="numeric" value="0,00"
+                                        oninput="handleCurrencyInput(this)"
+                                        class="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-base font-bold text-slate-800 focus:outline-none focus:ring-2 focus:ring-navy-800 focus:border-navy-800 focus:bg-white transition-all">
+                                </div>
+                            </div>
+
+                            <!-- Como aplicar o custo extra -->
+                            <div class="sm:col-span-6">
+                                <label class="block text-xs font-semibold text-slate-600 mb-1.5">Aplicação do Custo Extra:</label>
+                                <div class="grid grid-cols-2 gap-1.5 bg-slate-100 p-1 rounded-xl border border-slate-200">
+                                    <button type="button" id="extraBeforeBtn" onclick="setExtraMode('before')"
+                                        class="py-2 px-2 text-xs font-semibold rounded-lg bg-navy-900 text-white shadow-sm transition-all text-center">
+                                        Antes da % (Com Lucro)
+                                    </button>
+                                    <button type="button" id="extraAfterBtn" onclick="setExtraMode('after')"
+                                        class="py-2 px-2 text-xs font-semibold rounded-lg text-slate-600 hover:text-navy-900 transition-all text-center">
+                                        Depois da % (Repasse)
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Cartão 3: Margem de Lucro e Desconto -->
+                <section class="bg-white rounded-2xl shadow-sm border border-slate-200/80 p-5 sm:p-6">
+                    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-4">
+                        <h2 class="text-base font-bold text-navy-900 flex items-center gap-2">
+                            <span class="w-6 h-6 rounded-lg bg-navy-900 text-white text-xs flex items-center justify-center font-bold">3</span>
+                            Porcentagem de Lucro & Negociação
+                        </h2>
+
+                        <!-- Seletor de Fórmula: Markup vs Margem Real -->
+                        <div class="inline-flex bg-slate-100 p-1 rounded-xl border border-slate-200 self-start sm:self-auto">
+                            <button type="button" id="modeMarkupBtn" onclick="setCalcMode('markup')"
+                                class="px-3 py-1.5 text-xs font-semibold rounded-lg bg-navy-900 text-white shadow-sm transition-all"
+                                title="Soma a porcentagem diretamente em cima do custo (Ex: Custo R$100 + 50% = R$150)">
+                                Markup (Custo + %)
+                            </button>
+                            <button type="button" id="modeMarginBtn" onclick="setCalcMode('margin')"
+                                class="px-3 py-1.5 text-xs font-semibold rounded-lg text-slate-600 hover:text-navy-900 transition-all"
+                                title="Garante que o lucro seja exatamente a porcentagem escolhida sobre o valor final de venda (Custo / (1 - %))">
+                                Margem Real (%)
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Explicação dinâmica do modo de cálculo -->
+                    <div id="modeExplanation" class="mb-4 px-3.5 py-2.5 bg-blue-50/80 border border-blue-100 rounded-xl text-xs text-navy-800 flex items-start gap-2">
+                        <i data-lucide="info" class="w-4 h-4 text-blue-600 shrink-0 mt-0.5"></i>
+                        <span><strong>Markup sobre o custo:</strong> Aplica a porcentagem escolhida diretamente acima do valor de custo.</span>
+                    </div>
+
+                    <div class="grid grid-cols-1 sm:grid-cols-12 gap-5 items-start">
+                        <!-- Porcentagem de Lucro -->
+                        <div class="sm:col-span-7">
+                            <label for="profitPercent" class="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5">
+                                Porcentagem Aplicada (%)
+                            </label>
+                            <div class="relative">
+                                <input type="number" id="profitPercent" value="100" min="0" max="9999" step="1"
+                                    oninput="calculate()"
+                                    class="w-full pl-4 pr-10 py-3 bg-slate-50 border border-slate-300 rounded-xl text-xl font-extrabold text-emerald-700 focus:outline-none focus:ring-2 focus:ring-emerald-600 focus:border-emerald-600 focus:bg-white transition-all">
+                                <span class="absolute right-4 top-1/2 -translate-y-1/2 text-slate-500 font-bold text-base">%</span>
+                            </div>
+
+                            <!-- Botões Rápidos de Porcentagem -->
+                            <div class="flex flex-wrap gap-1.5 mt-2.5">
+                                <button type="button" onclick="setProfit(30)" class="profit-pill px-3 py-1.5 text-xs font-bold bg-slate-100 hover:bg-emerald-600 hover:text-white text-slate-700 rounded-lg transition-colors">30%</button>
+                                <button type="button" onclick="setProfit(50)" class="profit-pill px-3 py-1.5 text-xs font-bold bg-slate-100 hover:bg-emerald-600 hover:text-white text-slate-700 rounded-lg transition-colors">50%</button>
+                                <button type="button" onclick="setProfit(80)" class="profit-pill px-3 py-1.5 text-xs font-bold bg-slate-100 hover:bg-emerald-600 hover:text-white text-slate-700 rounded-lg transition-colors">80%</button>
+                                <button type="button" onclick="setProfit(100)" class="profit-pill px-3 py-1.5 text-xs font-bold bg-emerald-600 text-white rounded-lg transition-colors">100%</button>
+                                <button type="button" onclick="setProfit(150)" class="profit-pill px-3 py-1.5 text-xs font-bold bg-slate-100 hover:bg-emerald-600 hover:text-white text-slate-700 rounded-lg transition-colors">150%</button>
+                                <button type="button" onclick="setProfit(200)" class="profit-pill px-3 py-1.5 text-xs font-bold bg-slate-100 hover:bg-emerald-600 hover:text-white text-slate-700 rounded-lg transition-colors">200%</button>
+                            </div>
+                        </div>
+
+                        <!-- Desconto Opcional -->
+                        <div class="sm:col-span-5">
+                            <label for="discountPercent" class="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5">
+                                Desconto Cliente (Opcional)
+                            </label>
+                            <div class="relative">
+                                <input type="number" id="discountPercent" value="0" min="0" max="99" step="1"
+                                    oninput="calculate()"
+                                    class="w-full pl-4 pr-10 py-3 bg-slate-50 border border-slate-300 rounded-xl text-xl font-bold text-amber-600 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-amber-500 focus:bg-white transition-all">
+                                <span class="absolute right-4 top-1/2 -translate-y-1/2 text-slate-500 font-bold text-base">%</span>
+                            </div>
+                            <div class="flex gap-1.5 mt-2.5">
+                                <button type="button" onclick="setDiscount(0)" class="px-2.5 py-1.5 text-xs font-medium bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-lg transition-colors">0%</button>
+                                <button type="button" onclick="setDiscount(5)" class="px-2.5 py-1.5 text-xs font-medium bg-slate-100 hover:bg-amber-100 text-amber-700 rounded-lg transition-colors">-5%</button>
+                                <button type="button" onclick="setDiscount(10)" class="px-2.5 py-1.5 text-xs font-medium bg-slate-100 hover:bg-amber-100 text-amber-700 rounded-lg transition-colors">-10%</button>
+                                <button type="button" onclick="setDiscount(15)" class="px-2.5 py-1.5 text-xs font-medium bg-slate-100 hover:bg-amber-100 text-amber-700 rounded-lg transition-colors">-15%</button>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+            </div>
+
+            <!-- COLUNA DIREITA: Painel de Resultados & Lista de Orçamento (5 colunas no desktop) -->
+            <div class="lg:col-span-5 space-y-6 lg:sticky lg:top-24">
+
+                <!-- Cartão Principal de Resultado -->
+                <section class="bg-navy-900 text-white rounded-2xl shadow-xl border border-navy-800 overflow-hidden">
+                    <div class="p-5 sm:p-6">
+                        <div class="flex items-center justify-between mb-2">
+                            <span class="text-xs font-semibold uppercase tracking-wider text-blue-300">Preço Final de Venda</span>
+                            <span id="discountBadge" class="hidden text-xs font-bold bg-amber-500/20 text-amber-300 border border-amber-400/30 px-2.5 py-0.5 rounded-full">
+                                Com desconto aplicado
+                            </span>
+                        </div>
+
+                        <!-- Preço Original Riscado (quando há desconto) -->
+                        <div id="originalPriceContainer" class="hidden text-sm text-slate-400 line-through mb-0.5">
+                            De: <span id="originalPriceDisplay">R$ 0,00</span>
+                        </div>
+
+                        <!-- Valor Final Gigante -->
+                        <div class="flex items-baseline justify-between gap-2 my-1">
+                            <div id="finalPriceDisplay" class="text-4xl sm:text-5xl font-extrabold tracking-tight text-white">
+                                R$ 0,00
+                            </div>
+                        </div>
+
+                        <!-- Preço Unitário -->
+                        <div class="mt-2 inline-flex items-center gap-2 bg-navy-800/90 border border-slate-700/80 px-3.5 py-1.5 rounded-xl">
+                            <i data-lucide="tag" class="w-4 h-4 text-blue-400"></i>
+                            <span class="text-xs text-slate-300">Valor Unitário:</span>
+                            <span id="unitPriceDisplay" class="text-sm font-bold text-white">R$ 0,00 / un.</span>
+                        </div>
+
+                        <!-- Métricas Internas (Custo vs Lucro) -->
+                        <div class="grid grid-cols-2 gap-3 mt-6 pt-5 border-t border-navy-800">
+                            <div class="bg-navy-950/60 p-3.5 rounded-xl border border-slate-800">
+                                <span class="text-xs text-slate-400 block mb-1">Custo Total</span>
+                                <span id="totalCostDisplay" class="text-lg font-bold text-slate-200">R$ 0,00</span>
+                            </div>
+                            <div class="bg-emerald-950/40 p-3.5 rounded-xl border border-emerald-800/40">
+                                <div class="flex items-center justify-between mb-1">
+                                    <span class="text-xs text-emerald-300">Lucro Líquido</span>
+                                    <span id="realMarginBadge" class="text-[10px] font-bold bg-emerald-500/20 text-emerald-300 px-1.5 py-0.5 rounded">0%</span>
+                                </div>
+                                <span id="netProfitDisplay" class="text-lg font-extrabold text-emerald-400">R$ 0,00</span>
+                            </div>
+                        </div>
+
+                        <!-- Barra Visual de Proporção Custo x Lucro -->
+                        <div class="mt-4">
+                            <div class="flex justify-between text-[11px] font-medium text-slate-400 mb-1.5">
+                                <span id="costBarLabel">Custo: 0%</span>
+                                <span id="profitBarLabel" class="text-emerald-400">Lucro: 0%</span>
+                            </div>
+                            <div class="w-full h-2.5 bg-navy-950 rounded-full overflow-hidden flex p-0.5 border border-slate-800">
+                                <div id="costBar" class="bg-slate-500 h-full rounded-l-full transition-all duration-300" style="width: 50%"></div>
+                                <div id="profitBar" class="bg-emerald-500 h-full rounded-r-full transition-all duration-300" style="width: 50%"></div>
+                            </div>
+                        </div>
+
+                        <!-- Botões de Ação Imediata -->
+                        <div class="mt-6 space-y-2.5">
+                            <!-- Seletor de Prazo Padrão para WhatsApp -->
+                            <div class="bg-navy-950/70 p-3 rounded-xl border border-slate-800">
+                                <label for="deliveryTimeSelect" class="block text-[11px] font-semibold uppercase tracking-wider text-slate-400 mb-1.5">
+                                    Prazo na Mensagem do WhatsApp
+                                </label>
+                                <select id="deliveryTimeSelect" onchange="savePreferences()" class="w-full bg-navy-900 border border-slate-700 text-xs sm:text-sm text-white rounded-lg px-3 py-2 focus:outline-none focus:border-amber-400">
+                                    <option value="7 a 8 dias úteis após aprovação da arte">Padrão Gráfica: 7 a 8 dias úteis</option>
+                                    <option value="Entrega no mesmo dia (sujeito à aprovação até 14h)">Produção Expressa: Mesmo dia</option>
+                                    <option value="2 a 3 dias úteis após aprovação da arte">Prazo Rápido: 2 a 3 dias úteis</option>
+                                    <option value="none">Não informar prazo na mensagem</option>
+                                </select>
+                            </div>
+
+                            <button type="button" onclick="copySingleWhatsApp()"
+                                class="w-full py-3.5 px-4 bg-emerald-600 hover:bg-emerald-500 active:bg-emerald-700 text-white font-bold rounded-xl shadow-lg shadow-emerald-950/50 flex items-center justify-center gap-2.5 transition-all cursor-pointer">
+                                <i data-lucide="message-circle" class="w-5 h-5"></i>
+                                <span>Copiar Orçamento para WhatsApp</span>
+                            </button>
+
+                            <button type="button" onclick="addItemToQuote()"
+                                class="w-full py-3 px-4 bg-navy-800 hover:bg-slate-700 text-blue-200 hover:text-white font-semibold rounded-xl border border-slate-700 flex items-center justify-center gap-2 transition-all cursor-pointer">
+                                <i data-lucide="list-plus" class="w-5 h-5 text-blue-400"></i>
+                                <span>Adicionar à Lista de Orçamento</span>
+                            </button>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Cartão de Lista / Histórico do Orçamento Atual -->
+                <section class="bg-white rounded-2xl shadow-sm border border-slate-200/80 p-5 sm:p-6">
+                    <div class="flex items-center justify-between mb-4">
+                        <div class="flex items-center gap-2">
+                            <i data-lucide="shopping-bag" class="w-5 h-5 text-navy-900"></i>
+                            <h3 class="text-base font-bold text-navy-900">Itens do Orçamento</h3>
+                            <span id="quoteCountBadge" class="text-xs font-bold bg-slate-200 text-slate-700 px-2 py-0.5 rounded-full">0</span>
+                        </div>
+                        <button type="button" id="clearQuoteBtn" onclick="clearQuoteList()" class="hidden text-xs font-semibold text-rose-600 hover:text-rose-700 hover:underline">
+                            Limpar lista
+                        </button>
+                    </div>
+
+                    <!-- Estado Vazio -->
+                    <div id="emptyQuoteState" class="text-center py-6 px-4 bg-slate-50 rounded-xl border border-dashed border-slate-300">
+                        <p class="text-sm font-medium text-slate-600">Nenhum item adicionado ainda.</p>
+                        <p class="text-xs text-slate-400 mt-1">Calcule um produto e clique em <strong>"Adicionar à Lista"</strong> para montar um orçamento completo com vários itens.</p>
+                    </div>
+
+                    <!-- Lista Dinâmica de Itens -->
+                    <div id="quoteItemsList" class="space-y-2.5 max-h-64 overflow-y-auto pr-1 hidden">
+                        <!-- Itens inseridos via JS -->
+                    </div>
+
+                    <!-- Rodapé Totalizador da Lista -->
+                    <div id="quoteTotalFooter" class="hidden mt-4 pt-4 border-t border-slate-200">
+                        <div class="flex items-center justify-between mb-3">
+                            <span class="text-sm font-semibold text-slate-600">Total Geral do Pedido:</span>
+                            <span id="quoteGrandTotal" class="text-2xl font-extrabold text-navy-900">R$ 0,00</span>
+                        </div>
+                        <button type="button" onclick="copyFullQuoteWhatsApp()"
+                            class="w-full py-3 px-4 bg-navy-900 hover:bg-navy-800 text-white font-bold rounded-xl shadow flex items-center justify-center gap-2 transition-all cursor-pointer">
+                            <i data-lucide="copy-check" class="w-4 h-4 text-emerald-400"></i>
+                            <span>Copiar Orçamento Completo (WhatsApp)</span>
+                        </button>
+                    </div>
+                </section>
+
+            </div>
+        </div>
+    </main>
+
+    <!-- Rodapé Discreto -->
+    <footer class="max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 text-center text-xs text-slate-400 border-t border-slate-200/60 mt-8">
+        PrintAju Gráfica Rápida &copy; 2026 — Ferramenta interna de cálculo e precificação rápida.
+    </footer>
+
+    <!-- Lógica da Aplicação -->
+    <script>
+        // Chaves do localStorage
+        const STORAGE_KEY_ITEMS = 'printaju_quote_items_v1';
+        const STORAGE_KEY_PREFS = 'printaju_prefs_v1';
+        let deferredInstallPrompt = null;
+
+        // Estado global da aplicação
+        let state = {
+            calcMode: 'markup', // 'markup' ou 'margin'
+            extraMode: 'before', // 'before' (antes da %) ou 'after' (depois da %)
+            quoteItems: [],
+            currentResult: {
+                productName: '',
+                quantity: 1,
+                totalCost: 0,
+                finalPrice: 0,
+                originalPrice: 0,
+                unitPrice: 0,
+                netProfit: 0,
+                discountPercent: 0
+            }
+        };
+
+        // Inicialização ao carregar a página
+        document.addEventListener('DOMContentLoaded', () => {
+            initPWA();
+            loadFromStorage();
+            lucide.createIcons();
+            calculate();
+            renderQuoteList();
+        });
+
+        // ==========================================
+        // CONFIGURAÇÃO PWA (MANIFEST + SERVICE WORKER)
+        // ==========================================
+        function initPWA() {
+            // Ícone SVG embutido estilizado para PrintAju
+            const svgIcon = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+                <rect width="512" height="512" rx="112" fill="#0f172a"/>
+                <rect x="24" y="24" width="464" height="464" rx="92" fill="none" stroke="#1e3a8a" stroke-width="12"/>
+                <path d="M152 144h208v64H152z" fill="#f59e0b"/>
+                <rect x="112" y="200" width="288" height="144" rx="28" fill="#ffffff"/>
+                <rect x="156" y="296" width="200" height="96" rx="12" fill="#e2e8f0"/>
+                <circle cx="348" cy="244" r="14" fill="#10b981"/>
+                <text x="256" y="356" font-family="Arial, sans-serif" font-weight="900" font-size="38" fill="#0f172a" text-anchor="middle">PRINTAJU</text>
+            </svg>`;
+            const iconDataUrl = 'data:image/svg+xml;base64,' + btoa(svgIcon);
+
+            // Define ícone Apple Touch
+            const appleIconEl = document.getElementById('apple-touch-icon');
+            if (appleIconEl) appleIconEl.href = iconDataUrl;
+
+            // Gera Web App Manifest dinâmico via Blob URL
+            const manifest = {
+                name: 'Calculadora PrintAju',
+                short_name: 'PrintAju Calc',
+                description: 'Calculadora de Precificação e Orçamentos - PrintAju Gráfica Rápida',
+                start_url: window.location.href,
+                display: 'standalone',
+                background_color: '#0f172a',
+                theme_color: '#0f172a',
+                orientation: 'portrait-primary',
+                icons: [
+                    {
+                        src: iconDataUrl,
+                        sizes: '192x192',
+                        type: 'image/svg+xml',
+                        purpose: 'any maskable'
+                    },
+                    {
+                        src: iconDataUrl,
+                        sizes: '512x512',
+                        type: 'image/svg+xml',
+                        purpose: 'any maskable'
+                    }
+                ]
+            };
+
+            const manifestBlob = new Blob([JSON.stringify(manifest)], { type: 'application/manifest+json' });
+            const manifestUrl = URL.createObjectURL(manifestBlob);
+            const manifestLink = document.getElementById('pwa-manifest');
+            if (manifestLink) manifestLink.href = manifestUrl;
+
+            // Registra Service Worker embutido via Blob URL para cache offline
+            if ('serviceWorker' in navigator && (window.location.protocol === 'https:' || window.location.hostname === 'localhost')) {
+                const swCode = `
+                    const CACHE_NAME = 'printaju-calc-cache-v1';
+                    const URLS_TO_CACHE = [
+                        self.location.origin,
+                        'https://cdn.tailwindcss.com',
+                        'https://unpkg.com/lucide@latest'
+                    ];
+
+                    self.addEventListener('install', event => {
+                        self.skipWaiting();
+                        event.waitUntil(
+                            caches.open(CACHE_NAME).then(cache => {
+                                return cache.addAll(URLS_TO_CACHE).catch(() => {});
+                            })
+                        );
+                    });
+
+                    self.addEventListener('activate', event => {
+                        event.waitUntil(clients.claim());
+                    });
+
+                    self.addEventListener('fetch', event => {
+                        if (event.request.method !== 'GET') return;
+                        event.respondWith(
+                            caches.match(event.request).then(cachedResponse => {
+                                const fetchPromise = fetch(event.request).then(networkResponse => {
+                                    if (networkResponse && networkResponse.status === 200) {
+                                        const responseClone = networkResponse.clone();
+                                        caches.open(CACHE_NAME).then(cache => cache.put(event.request, responseClone));
+                                    }
+                                    return networkResponse;
+                                }).catch(() => cachedResponse);
+                                return cachedResponse || fetchPromise;
+                            })
+                        );
+                    });
+                `;
+                try {
+                    const swBlob = new Blob([swCode], { type: 'application/javascript' });
+                    const swUrl = URL.createObjectURL(swBlob);
+                    navigator.serviceWorker.register(swUrl).catch(() => {});
+                } catch (e) {
+                    // Ignora caso o ambiente sandbox restrinja SW via Blob
+                }
+            }
+
+            // Captura evento de instalação nativa no Android / Chrome
+            window.addEventListener('beforeinstallprompt', (e) => {
+                e.preventDefault();
+                deferredInstallPrompt = e;
+                const btn = document.getElementById('installAppBtn');
+                if (btn) btn.classList.remove('hidden');
+            });
+
+            // Oculta botão se já estiver rodando em modo standalone (instalado)
+            if (window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true) {
+                const btn = document.getElementById('installAppBtn');
+                if (btn) btn.classList.add('hidden');
+            }
+        }
+
+        // Aciona instalação nativa ou exibe guia para iOS/Safari
+        async function triggerPWAInstall() {
+            if (deferredInstallPrompt) {
+                deferredInstallPrompt.prompt();
+                const { outcome } = await deferredInstallPrompt.userChoice;
+                if (outcome === 'accepted') {
+                    showToast('Instalando Calculadora PrintAju...');
+                    document.getElementById('installAppBtn').classList.add('hidden');
+                }
+                deferredInstallPrompt = null;
+            } else {
+                document.getElementById('iosInstallModal').classList.remove('hidden');
+                lucide.createIcons();
+            }
+        }
+
+        function closeInstallModal() {
+            document.getElementById('iosInstallModal').classList.add('hidden');
+        }
+
+        // ==========================================
+        // PERSISTÊNCIA LOCAL (LOCALSTORAGE)
+        // ==========================================
+        function saveQuoteItemsToStorage() {
+            try {
+                localStorage.setItem(STORAGE_KEY_ITEMS, JSON.stringify(state.quoteItems));
+            } catch (e) {}
+        }
+
+        function savePreferences() {
+            try {
+                const prefs = {
+                    deliveryTime: document.getElementById('deliveryTimeSelect').value
+                };
+                localStorage.setItem(STORAGE_KEY_PREFS, JSON.stringify(prefs));
+            } catch (e) {}
+        }
+
+        function loadFromStorage() {
+            try {
+                const savedItems = localStorage.getItem(STORAGE_KEY_ITEMS);
+                if (savedItems) {
+                    state.quoteItems = JSON.parse(savedItems) || [];
+                }
+                const savedPrefs = localStorage.getItem(STORAGE_KEY_PREFS);
+                if (savedPrefs) {
+                    const prefs = JSON.parse(savedPrefs);
+                    if (prefs.deliveryTime && document.getElementById('deliveryTimeSelect')) {
+                        document.getElementById('deliveryTimeSelect').value = prefs.deliveryTime;
+                    }
+                }
+            } catch (e) {
+                state.quoteItems = [];
+            }
+        }
+
+        // Formata número float para moeda brasileira (R$ 1.234,56)
+        function formatCurrency(value) {
+            if (isNaN(value) || !isFinite(value)) value = 0;
+            return value.toLocaleString('pt-BR', {
+                style: 'currency',
+                currency: 'BRL',
+                minimumFractionDigits: 2,
+                maximumFractionDigits: 2
+            });
+        }
+
+        // Converte string formatada "1.234,56" para número float 1234.56
+        function parseCurrencyInput(str) {
+            if (!str) return 0;
+            const digits = str.replace(/\D/g, '');
+            if (!digits) return 0;
+            return parseInt(digits, 10) / 100;
+        }
+
+        // Aplica máscara monetária em tempo real nos inputs de R$
+        function handleCurrencyInput(input) {
+            const numericValue = parseCurrencyInput(input.value);
+            input.value = numericValue.toLocaleString('pt-BR', {
+                minimumFractionDigits: 2,
+                maximumFractionDigits: 2
+            });
+            calculate();
+        }
+
+        // Define produto e quantidade via atalho rápido
+        function setProduct(name, defaultQty) {
+            document.getElementById('productName').value = name;
+            if (defaultQty) {
+                document.getElementById('quantity').value = defaultQty;
+            }
+            calculate();
+            showToast(`Produto selecionado: ${name}`);
+        }
+
+        // Ajusta quantidade (+1 / -1)
+        function adjustQuantity(delta) {
+            const qtyInput = document.getElementById('quantity');
+            let current = parseInt(qtyInput.value, 10) || 1;
+            current = Math.max(1, current + delta);
+            qtyInput.value = current;
+            calculate();
+        }
+
+        // Define quantidade exata
+        function setQuantity(qty) {
+            document.getElementById('quantity').value = qty;
+            calculate();
+        }
+
+        // Define porcentagem de lucro e destaca botão ativo
+        function setProfit(percent) {
+            document.getElementById('profitPercent').value = percent;
+            document.querySelectorAll('.profit-pill').forEach(btn => {
+                if (btn.textContent === `${percent}%`) {
+                    btn.classList.remove('bg-slate-100', 'text-slate-700');
+                    btn.classList.add('bg-emerald-600', 'text-white');
+                } else {
+                    btn.classList.remove('bg-emerald-600', 'text-white');
+                    btn.classList.add('bg-slate-100', 'text-slate-700');
+                }
+            });
+            calculate();
+        }
+
+        // Define desconto
+        function setDiscount(percent) {
+            document.getElementById('discountPercent').value = percent;
+            calculate();
+        }
+
+        // Alterna como o custo extra é somado (Antes ou Depois da margem)
+        function setExtraMode(mode) {
+            state.extraMode = mode;
+            const beforeBtn = document.getElementById('extraBeforeBtn');
+            const afterBtn = document.getElementById('extraAfterBtn');
+
+            if (mode === 'before') {
+                beforeBtn.className = 'py-2 px-2 text-xs font-semibold rounded-lg bg-navy-900 text-white shadow-sm transition-all text-center';
+                afterBtn.className = 'py-2 px-2 text-xs font-semibold rounded-lg text-slate-600 hover:text-navy-900 transition-all text-center';
+            } else {
+                afterBtn.className = 'py-2 px-2 text-xs font-semibold rounded-lg bg-navy-900 text-white shadow-sm transition-all text-center';
+                beforeBtn.className = 'py-2 px-2 text-xs font-semibold rounded-lg text-slate-600 hover:text-navy-900 transition-all text-center';
+            }
+            calculate();
+        }
+
+        // Alterna modo de cálculo (Markup sobre custo vs Margem Real sobre venda)
+        function setCalcMode(mode) {
+            state.calcMode = mode;
+            const markupBtn = document.getElementById('modeMarkupBtn');
+            const marginBtn = document.getElementById('modeMarginBtn');
+            const explanation = document.getElementById('modeExplanation');
+
+            if (mode === 'markup') {
+                markupBtn.className = 'px-3 py-1.5 text-xs font-semibold rounded-lg bg-navy-900 text-white shadow-sm transition-all';
+                marginBtn.className = 'px-3 py-1.5 text-xs font-semibold rounded-lg text-slate-600 hover:text-navy-900 transition-all';
+                explanation.innerHTML = `<i data-lucide="info" class="w-4 h-4 text-blue-600 shrink-0 mt-0.5"></i><span><strong>Markup sobre o custo:</strong> Aplica a porcentagem escolhida diretamente acima do valor de custo (Ex: R$ 100 + 100% = R$ 200).</span>`;
+            } else {
+                marginBtn.className = 'px-3 py-1.5 text-xs font-semibold rounded-lg bg-navy-900 text-white shadow-sm transition-all';
+                markupBtn.className = 'px-3 py-1.5 text-xs font-semibold rounded-lg text-slate-600 hover:text-navy-900 transition-all';
+                explanation.innerHTML = `<i data-lucide="info" class="w-4 h-4 text-blue-600 shrink-0 mt-0.5"></i><span><strong>Margem real sobre a venda:</strong> Garante que o lucro líquido represente exatamente essa % do preço cobrado ao cliente.</span>`;
+            }
+            lucide.createIcons();
+            calculate();
+        }
+
+        // Função principal de cálculo em tempo real
+        function calculate() {
+            const productName = document.getElementById('productName').value.trim();
+            const baseCost = parseCurrencyInput(document.getElementById('baseCost').value);
+            const extraCost = parseCurrencyInput(document.getElementById('extraCost').value);
+            const quantity = Math.max(1, parseInt(document.getElementById('quantity').value, 10) || 1);
+            let profitPercent = Math.max(0, parseFloat(document.getElementById('profitPercent').value) || 0);
+            let discountPercent = Math.min(99, Math.max(0, parseFloat(document.getElementById('discountPercent').value) || 0));
+
+            // Atualiza visual das pílulas de porcentagem caso o usuário digite manualmente
+            document.querySelectorAll('.profit-pill').forEach(btn => {
+                if (btn.textContent === `${profitPercent}%`) {
+                    btn.classList.remove('bg-slate-100', 'text-slate-700');
+                    btn.classList.add('bg-emerald-600', 'text-white');
+                } else {
+                    btn.classList.remove('bg-emerald-600', 'text-white');
+                    btn.classList.add('bg-slate-100', 'text-slate-700');
+                }
+            });
+
+            // Custo total real desembolsado pela gráfica
+            const totalCost = baseCost + extraCost;
+
+            // Define qual base receberá a porcentagem de lucro
+            const costSubjectToProfit = (state.extraMode === 'before') ? (baseCost + extraCost) : baseCost;
+            const passThroughExtra = (state.extraMode === 'after') ? extraCost : 0;
+
+            let grossSalePrice = 0;
+
+            if (state.calcMode === 'markup') {
+                // Markup: Custo + (Custo * %)
+                grossSalePrice = costSubjectToProfit * (1 + (profitPercent / 100)) + passThroughExtra;
+            } else {
+                // Margem Real: Custo / (1 - %) -> Trava máxima em 99% para evitar divisão por zero
+                const safeMargin = Math.min(99, profitPercent);
+                grossSalePrice = (costSubjectToProfit / (1 - (safeMargin / 100))) + passThroughExtra;
+            }
+
+            // Aplica desconto opcional ao cliente
+            const discountAmount = grossSalePrice * (discountPercent / 100);
+            const finalPrice = Math.max(0, grossSalePrice - discountAmount);
+
+            // Valor unitário
+            const unitPrice = finalPrice / quantity;
+
+            // Lucro Líquido Estimado (Preço Final - Custo Total)
+            const netProfit = finalPrice - totalCost;
+
+            // Margem real efetiva sobre a venda final (%)
+            const effectiveMarginPercent = finalPrice > 0 ? ((netProfit / finalPrice) * 100) : 0;
+
+            // Atualiza estado atual
+            state.currentResult = {
+                productName: productName || 'Serviço Gráfico Personalizado',
+                quantity,
+                totalCost,
+                finalPrice,
+                originalPrice: grossSalePrice,
+                unitPrice,
+                netProfit,
+                discountPercent
+            };
+
+            // Atualiza interface do painel de resultados
+            updateResultsUI(effectiveMarginPercent);
+        }
+
+        // Atualiza os elementos visuais do painel direito
+        function updateResultsUI(effectiveMarginPercent) {
+            const res = state.currentResult;
+
+            document.getElementById('finalPriceDisplay').textContent = formatCurrency(res.finalPrice);
+            document.getElementById('unitPriceDisplay').textContent = `${formatCurrency(res.unitPrice)} / un.`;
+            document.getElementById('totalCostDisplay').textContent = formatCurrency(res.totalCost);
+
+            const netProfitEl = document.getElementById('netProfitDisplay');
+            netProfitEl.textContent = formatCurrency(res.netProfit);
+
+            // Alerta visual caso o desconto deixe o lucro negativo (prejuízo)
+            if (res.netProfit < 0) {
+                netProfitEl.classList.remove('text-emerald-400');
+                netProfitEl.classList.add('text-rose-400');
+            } else {
+                netProfitEl.classList.remove('text-rose-400');
+                netProfitEl.classList.add('text-emerald-400');
+            }
+
+            // Exibição do preço original riscado quando houver desconto
+            const discountBadge = document.getElementById('discountBadge');
+            const originalPriceContainer = document.getElementById('originalPriceContainer');
+            if (res.discountPercent > 0 && res.originalPrice > 0) {
+                discountBadge.textContent = `-${res.discountPercent}% OFF`;
+                discountBadge.classList.remove('hidden');
+                document.getElementById('originalPriceDisplay').textContent = formatCurrency(res.originalPrice);
+                originalPriceContainer.classList.remove('hidden');
+            } else {
+                discountBadge.classList.add('hidden');
+                originalPriceContainer.classList.add('hidden');
+            }
+
+            // Badge de margem real efetiva
+            const marginBadge = document.getElementById('realMarginBadge');
+            marginBadge.textContent = `${effectiveMarginPercent.toFixed(1)}% margem`;
+
+            // Atualização da barra proporcional Custo x Lucro
+            let costRatio = 50;
+            let profitRatio = 50;
+
+            if (res.finalPrice > 0) {
+                if (res.netProfit <= 0) {
+                    costRatio = 100;
+                    profitRatio = 0;
+                } else {
+                    profitRatio = Math.min(100, Math.max(0, (res.netProfit / res.finalPrice) * 100));
+                    costRatio = 100 - profitRatio;
+                }
+            }
+
+            document.getElementById('costBar').style.width = `${costRatio}%`;
+            document.getElementById('profitBar').style.width = `${profitRatio}%`;
+            document.getElementById('costBarLabel').textContent = `Custo: ${costRatio.toFixed(0)}%`;
+            document.getElementById('profitBarLabel').textContent = `Lucro: ${profitRatio.toFixed(0)}%`;
+        }
+
+        // Copia texto para área de transferência usando document.execCommand('copy')
+        function copyToClipboard(text, successMsg) {
+            const textarea = document.createElement('textarea');
+            textarea.value = text;
+            textarea.style.position = 'fixed';
+            textarea.style.opacity = '0';
+            document.body.appendChild(textarea);
+            textarea.select();
+            try {
+                document.execCommand('copy');
+                showToast(successMsg);
+            } catch (err) {
+                showToast('Não foi possível copiar automaticamente.');
+            }
+            document.body.removeChild(textarea);
+        }
+
+        // Gera e copia mensagem formatada do item atual para WhatsApp
+        function copySingleWhatsApp() {
+            const res = state.currentResult;
+            if (res.finalPrice <= 0) {
+                showToast('Informe um custo maior que R$ 0,00 para gerar o orçamento.');
+                return;
+            }
+
+            const deliveryTime = document.getElementById('deliveryTimeSelect')?.value || 'none';
+
+            let lines = [
+                `*ORÇAMENTO - PRINTAJU GRÁFICA RÁPIDA* 🖨️`,
+                ``,
+                `📌 *Produto:* ${res.productName}`,
+                `📦 *Quantidade:* ${res.quantity} un.`,
+                `💲 *Valor Unitário:* ${formatCurrency(res.unitPrice)}`
+            ];
+
+            if (res.discountPercent > 0) {
+                lines.push(`🏷️ *Desconto Aplicado:* ${res.discountPercent}%`);
+            }
+
+            lines.push(`✅ *Valor Total:* *${formatCurrency(res.finalPrice)}*`);
+
+            if (deliveryTime !== 'none') {
+                lines.push(`⏱️ *Prazo de Produção:* ${deliveryTime}`);
+            }
+
+            lines.push(``);
+            lines.push(`_Orçamento válido por 5 dias. Qualquer dúvida, estamos à disposição!_`);
+
+            copyToClipboard(lines.join('\n'), 'Orçamento copiado! Pronto para colar no WhatsApp.');
+        }
+
+        // Adiciona o cálculo atual na lista de orçamento multi-itens
+        function addItemToQuote() {
+            const res = state.currentResult;
+            if (res.finalPrice <= 0) {
+                showToast('Calcule um valor válido antes de adicionar à lista.');
+                return;
+            }
+
+            state.quoteItems.push({
+                id: Date.now(),
+                productName: res.productName,
+                quantity: res.quantity,
+                unitPrice: res.unitPrice,
+                finalPrice: res.finalPrice,
+                netProfit: res.netProfit
+            });
+
+            saveQuoteItemsToStorage();
+            renderQuoteList();
+            showToast(`"${res.productName}" adicionado ao orçamento!`);
+        }
+
+        // Remove um item específico da lista
+        function removeQuoteItem(id) {
+            state.quoteItems = state.quoteItems.filter(item => item.id !== id);
+            saveQuoteItemsToStorage();
+            renderQuoteList();
+        }
+
+        // Limpa toda a lista de orçamento
+        function clearQuoteList() {
+            state.quoteItems = [];
+            saveQuoteItemsToStorage();
+            renderQuoteList();
+            showToast('Lista de orçamento limpa.');
+        }
+
+        // Renderiza a lista de itens acumulados
+        function renderQuoteList() {
+            const listEl = document.getElementById('quoteItemsList');
+            const emptyEl = document.getElementById('emptyQuoteState');
+            const footerEl = document.getElementById('quoteTotalFooter');
+            const countBadge = document.getElementById('quoteCountBadge');
+            const clearBtn = document.getElementById('clearQuoteBtn');
+            const grandTotalEl = document.getElementById('quoteGrandTotal');
+
+            countBadge.textContent = state.quoteItems.length;
+
+            if (state.quoteItems.length === 0) {
+                emptyEl.classList.remove('hidden');
+                listEl.classList.add('hidden');
+                footerEl.classList.add('hidden');
+                clearBtn.classList.add('hidden');
+                return;
+            }
+
+            emptyEl.classList.add('hidden');
+            listEl.classList.remove('hidden');
+            footerEl.classList.remove('hidden');
+            clearBtn.classList.remove('hidden');
+
+            let grandTotal = 0;
+            listEl.innerHTML = state.quoteItems.map((item, idx) => {
+                grandTotal += item.finalPrice;
+                return `
+                    <div class="flex items-center justify-between gap-3 p-3 bg-slate-50 hover:bg-slate-100/80 rounded-xl border border-slate-200/80 transition-colors">
+                        <div class="min-w-0 flex-1">
+                            <p class="text-sm font-bold text-navy-900 truncate">${idx + 1}. ${item.productName}</p>
+                            <p class="text-xs text-slate-500 mt-0.5">
+                                ${item.quantity} un. × ${formatCurrency(item.unitPrice)}
+                            </p>
+                        </div>
+                        <div class="flex items-center gap-2.5 shrink-0">
+                            <span class="text-sm font-extrabold text-emerald-700">${formatCurrency(item.finalPrice)}</span>
+                            <button type="button" onclick="removeQuoteItem(${item.id})" title="Remover item" class="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors">
+                                <i data-lucide="trash-2" class="w-4 h-4"></i>
+                            </button>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+
+            grandTotalEl.textContent = formatCurrency(grandTotal);
+            lucide.createIcons();
+        }
+
+        // Copia orçamento completo com múltiplos itens para o WhatsApp
+        function copyFullQuoteWhatsApp() {
+            if (state.quoteItems.length === 0) return;
+
+            const deliveryTime = document.getElementById('deliveryTimeSelect')?.value || 'none';
+            let grandTotal = 0;
+            let lines = [
+                `*ORÇAMENTO COMPLETO - PRINTAJU GRÁFICA RÁPIDA* 🖨️`,
+                `-----------------------------------`
+            ];
+
+            state.quoteItems.forEach((item, index) => {
+                grandTotal += item.finalPrice;
+                lines.push(`*${index + 1}. ${item.productName}*`);
+                lines.push(`   • Qtd: ${item.quantity} un. (${formatCurrency(item.unitPrice)}/un.)`);
+                lines.push(`   • Subtotal: *${formatCurrency(item.finalPrice)}*`);
+                lines.push(``);
+            });
+
+            lines.push(`-----------------------------------`);
+            lines.push(`💰 *TOTAL GERAL: ${formatCurrency(grandTotal)}*`);
+
+            if (deliveryTime !== 'none') {
+                lines.push(`⏱️ *Prazo de Produção:* ${deliveryTime}`);
+            }
+
+            lines.push(``);
+            lines.push(`_Orçamento válido por 5 dias. Aguardamos sua aprovação para iniciar a produção!_`);
+
+            copyToClipboard(lines.join('\n'), 'Orçamento completo copiado para o WhatsApp!');
+        }
+
+        // Reseta os campos do formulário principal
+        function resetForm() {
+            document.getElementById('productName').value = '';
+            document.getElementById('baseCost').value = '0,00';
+            document.getElementById('extraCost').value = '0,00';
+            document.getElementById('quantity').value = '1';
+            setProfit(100);
+            setDiscount(0);
+            setCalcMode('markup');
+            setExtraMode('before');
+            calculate();
+            showToast('Campos reiniciados.');
+        }
+
+        // Exibe notificação Toast elegante
+        let toastTimeout;
+        function showToast(message) {
+            const toast = document.getElementById('toast');
+            const msgEl = document.getElementById('toast-message');
+            msgEl.textContent = message;
+
+            toast.classList.remove('translate-y-20', 'opacity-0');
+            toast.classList.add('translate-y-0', 'opacity-100');
+
+            clearTimeout(toastTimeout);
+            toastTimeout = setTimeout(() => {
+                toast.classList.remove('translate-y-0', 'opacity-100');
+                toast.classList.add('translate-y-20', 'opacity-0');
+            }, 3000);
+        }
+    </script>
+</body>
+</html>
